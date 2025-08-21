@@ -1,72 +1,77 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
-const { DisTubeError } = require('distube'); 
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
+const { DisTubeError } = require('distube');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('volume')
-    .setDescription('Set the volume for the music playback.')
-    .addIntegerOption(option => 
+    // DESCRIÇÃO TRADUZIDA
+    .setDescription('Define o volume da reprodução de música.')
+    .addIntegerOption(option =>
       option.setName('volume')
-        .setDescription('Volume level (0-100).')
+        // DESCRIÇÃO DA OPÇÃO TRADUZIDA
+        .setDescription('Nível do volume (0-100).')
         .setRequired(true)),
-  
+
   async execute(interaction) {
     const volume = interaction.options.getInteger('volume');
     const channel = interaction.member.voice.channel;
-  
+
     if (!channel) {
       const embed = new EmbedBuilder()
         .setColor('#FF0000')
-        .setTitle('Error')
-        .setDescription('You need to be in a voice channel to set the volume.');
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Erro')
+        .setDescription('Você precisa estar em um canal de voz para definir o volume.');
       
-      return interaction.reply({ embeds: [embed] });
+      // Resposta de erro efêmera
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
-  
+
+    // A verificação de volume deve ser efêmera
     if (volume < 0 || volume > 100) {
       const embed = new EmbedBuilder()
-        .setColor('#FF0000') 
-        .setTitle('Invalid Volume')
-        .setDescription('Volume level must be between 0 and 100.');
+        .setColor('#FF9900')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Volume Inválido')
+        .setDescription('O nível do volume deve ser um número entre 0 e 100.');
       
-      return interaction.reply({ embeds: [embed] });
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
-  
+
     try {
+      // É preciso verificar se a fila existe antes de tentar alterar o volume
+      const queue = interaction.client.playerManager.distube.getQueue(channel);
+      if (!queue) {
+          const embed = new EmbedBuilder()
+              .setColor('#FF9900')
+              .setTitle('Fila Inexistente')
+              .setDescription('Não há nenhuma música tocando no momento para ajustar o volume.');
+
+          return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
       await interaction.client.playerManager.distube.setVolume(channel, volume);
-      
+
       const embed = new EmbedBuilder()
-        .setColor('#00FF00') 
-        .setTitle('Volume Set')
-        .setDescription(`🔊 Volume set to ${volume}%.`);
+        .setColor('#00FF00')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Volume Definido')
+        .setDescription(`🔊 Volume alterado para **${volume}%**.`);
       
+      // Resposta de confirmação PÚBLICA
       await interaction.reply({ embeds: [embed] });
+
     } catch (error) {
       console.error('Set Volume Error:', error);
+
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Erro')
+        .setDescription('Ocorreu um erro ao tentar definir o volume.');
       
-      let embed;
-      
-      if (error instanceof DisTubeError) {
-        if (error.errorCode === 'NO_QUEUE') {
-          embed = new EmbedBuilder()
-            .setColor('#FF0000') 
-            .setTitle('No Queue')
-            .setDescription('There is no queue to set the volume.');
-        } else {
-          embed = new EmbedBuilder()
-            .setColor('#FF0000') 
-            .setTitle('Error')
-            .setDescription('An error occurred while setting the volume.');
-        }
-      } else {
-        embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('Error')
-          .setDescription('An error occurred while setting the volume.');
-      }
-      
-      await interaction.reply({ embeds: [embed] });
+      // Resposta de erro efêmera
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
   },
 };

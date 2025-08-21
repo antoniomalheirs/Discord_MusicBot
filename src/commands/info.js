@@ -4,31 +4,39 @@ const os = require('os');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('info')
-    .setDescription('Provides information about the bot'),
-  async execute(interaction) {
-    const { client } = interaction;  
-
-   
-    const ping = client.ws.ping;  
-    const uptime = os.uptime();
-    const uptimeFormatted = new Date(uptime * 1000).toISOString().substr(11, 8);
-
+    // DESCRIÇÃO TRADUZIDA
+    .setDescription('Fornece informações sobre o bot.'),
     
+  async execute(interaction) {
+    const { client } = interaction;
+
+    const ping = client.ws.ping;
+    
+    // LÓGICA DE UPTIME MELHORADA
+    const totalSeconds = os.uptime();
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const uptimeFormatted = `${days}d, ${hours}h, ${minutes}m, ${seconds}s`;
+
     const embed = new EmbedBuilder()
-      .setColor('#00ff00')
-      .setTitle('Bot Information')
+      .setColor('#0099ff')
+      // TÍTULO TRADUZIDO
+      .setTitle('ℹ️ Informações do Bot')
       .setThumbnail(client.user.displayAvatarURL())
       .addFields(
-        { name: 'Bot Name', value: client.user.username, inline:false },
-        { name: 'Ping', value: `${ping}ms`, inline:false },
-        { name: 'Uptime', value: uptimeFormatted, inline:false },
-        { name: 'Node.js Version', value: process.version, inline:false },
-        { name: 'Platform', value: `${os.platform()} (${os.arch()})`, inline:false }
+        // CAMPOS TRADUZIDOS
+        { name: 'Nome do Bot', value: client.user.username, inline: false },
+        { name: 'Ping', value: `\`${ping}ms\``, inline: false },
+        { name: 'Tempo de Atividade', value: uptimeFormatted, inline: false },
+        { name: 'Versão do Node.js', value: process.version, inline: false },
+        { name: 'Plataforma', value: `${os.platform()} (${os.arch()})`, inline: false }
       )
-      .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+      // TEXTO DO FOOTER TRADUZIDO
+      .setFooter({ text: `Solicitado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
       .setTimestamp();
 
-  
     await interaction.reply({ embeds: [embed] });
   },
 };

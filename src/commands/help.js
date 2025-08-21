@@ -1,32 +1,51 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Shows all available commands'),
-  
+    .setName("help")
+    .setDescription("Exibe informações sobre todos os comandos disponíveis."),
+
   async execute(interaction) {
-    // Path to the folder containing your command files
-    const commandsFolder = path.join(__dirname);
-    const commandFiles = fs.readdirSync(commandsFolder).filter(file => file.endsWith('.js'));
+    try {
+      // Busca todos os comandos globais registrados para a sua aplicação
+      const commands = await interaction.client.application.commands.fetch();
+      const filteredCommands = commands.filter(cmd => cmd.name !== "help");
+      
+      // Constrói a base do nosso Embed
+      const helpEmbed = new EmbedBuilder()
+        .setColor("#dc143c")
+        .setTitle("🤖 Central de Ajuda do Bot")
+        .setDescription(`Olá ${interaction.user}! Aqui está a lista de todos os comandos que você pode usar.\nClique em um comando para autocompletar!`)
+        // --- AQUI ESTÁ A LINHA QUE ADICIONA A IMAGEM DO SERVIDOR AO LADO ---
+        .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 512 }));
 
-    const helpEmbed = new EmbedBuilder()
-      .setTitle('Help - Available Commands')
-      .setDescription('- By : GlaceYT')
-      .setColor('#0099ff');
-
-    commandFiles.forEach(file => {
-      const command = require(path.join(commandsFolder, file));
-      if (command.data && command.data.name && command.data.description) {
-        helpEmbed.addFields({
-          name: `/${command.data.name}`,
-          value: command.data.description,
-        });
+      // Mapeia cada comando para um objeto de campo (field)
+      const commandFields = filteredCommands.map((command) => {
+        const options = command.options?.length 
+          ? command.options.map(opt => `\`${opt.name}\``).join(", ") 
+          : "Nenhum";
+          
+        return {
+          name: `</${command.name}:${command.id}>`,
+          value: `**Descrição:** ${command.description}\n**Parâmetros:** ${options}`,
+          inline: false,
+        };
+      });
+      
+      if (commandFields.length > 0) {
+        helpEmbed.addFields(commandFields);
+      } else {
+        helpEmbed.setDescription(`Olá ${interaction.user}! Parece que não há outros comandos para exibir no momento.`);
       }
-    });
 
-    await interaction.reply({ embeds: [helpEmbed] });
+      await interaction.reply({ embeds: [helpEmbed] });
+
+    } catch (error) {
+      console.error("Erro ao executar o comando /help:", error);
+      await interaction.reply({
+        content: "Ocorreu um erro ao tentar buscar as informações de ajuda.",
+        ephemeral: true,
+      });
+    }
   },
 };

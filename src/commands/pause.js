@@ -3,56 +3,61 @@ const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js'
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('pause')
-    .setDescription('Pause the current song.'),
+    // DESCRIÇÃO TRADUZIDA
+    .setDescription('Pausa a música atual.'),
 
   async execute(interaction) {
     const channel = interaction.member.voice.channel;
 
-    
     if (!channel) {
       const noChannelEmbed = new EmbedBuilder()
         .setColor('#ff0000')
-        .setTitle('Error')
-        .setDescription('❌ You need to be in a voice channel to pause music.')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Erro')
+        .setDescription('❌ Você precisa estar em um canal de voz para pausar a música.')
         .setTimestamp();
 
-      return interaction.reply({ embeds: [noChannelEmbed], flags: MessageFlags.Ephemeral  });
+      // Resposta de erro efêmera
+      return interaction.reply({ embeds: [noChannelEmbed], flags: MessageFlags.Ephemeral });
     }
 
     try {
       const queue = interaction.client.playerManager.distube.getQueue(channel);
 
-     
       if (!queue) {
         const noQueueEmbed = new EmbedBuilder()
           .setColor('#ff9900')
-          .setTitle('Error')
-          .setDescription('❌ There is no music playing currently.')
+          // TÍTULO E DESCRIÇÃO TRADUZIDOS
+          .setTitle('Erro')
+          .setDescription('❌ Não há nenhuma música tocando no momento.')
           .setTimestamp();
-
-        return interaction.reply({ embeds: [noQueueEmbed], flags: MessageFlags.Ephemeral  });
+        
+        // Resposta de erro efêmera
+        return interaction.reply({ embeds: [noQueueEmbed], flags: MessageFlags.Ephemeral });
       }
 
-     
       if (queue.paused) {
         const alreadyPausedEmbed = new EmbedBuilder()
           .setColor('#ff9900')
-          .setTitle('Music Already Paused')
-          .setDescription('⏸ The music is already paused.')
+          // TÍTULO E DESCRIÇÃO TRADUZIDOS
+          .setTitle('Música Já Pausada')
+          .setDescription('⏸️ A música já está pausada.')
           .setTimestamp();
-
-        return interaction.reply({ embeds: [alreadyPausedEmbed], flags: MessageFlags.Ephemeral  });
+        
+        // Resposta de aviso efêmera
+        return interaction.reply({ embeds: [alreadyPausedEmbed], flags: MessageFlags.Ephemeral });
       }
 
-     
       await interaction.client.playerManager.distube.pause(channel);
 
       const pausedEmbed = new EmbedBuilder()
         .setColor('#00ff00')
-        .setTitle('Music Paused')
-        .setDescription('⏸ The current song has been paused.')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Música Pausada')
+        .setDescription('⏸️ A música atual foi pausada.')
         .setTimestamp();
-
+      
+      // Resposta de confirmação PÚBLICA (sem a flag Ephemeral)
       await interaction.reply({ embeds: [pausedEmbed] });
 
     } catch (error) {
@@ -60,11 +65,13 @@ module.exports = {
 
       const errorEmbed = new EmbedBuilder()
         .setColor('#ff0000')
-        .setTitle('Error')
-        .setDescription('❌ An error occurred while trying to pause the song.')
+        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+        .setTitle('Erro')
+        .setDescription('❌ Ocorreu um erro ao tentar pausar a música.')
         .setTimestamp();
 
-      await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral  });
+      // Resposta de erro efêmera
+      await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
   },
 };

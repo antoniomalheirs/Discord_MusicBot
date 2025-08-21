@@ -1,5 +1,5 @@
 # Versão 20 do Node.js
-FROM node:20-slim
+FROM node:22-slim
 
 # Garante a instalação do python3, ffmpeg E as ferramentas de compilação
 RUN apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # O resto do arquivo...
-WORKDIR /bot/src/app
+WORKDIR /bot/rec_groove/
 
 COPY package*.json ./
 RUN npm install
