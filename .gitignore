@@ -40,6 +40,8 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+package-lock.json
+yarn.lock
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -66,8 +68,6 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-discloud.config
-discloud.ignore
 .env
 .env.*
 !.env.example
@@ -111,6 +111,7 @@ dist
 
 # Serverless directories
 .serverless/
+docker.ignore
 
 # FuseBox cache
 .fusebox/

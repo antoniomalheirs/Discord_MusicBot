@@ -12,6 +12,7 @@ const commandsPath = path.join(__dirname, './commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 const clientId = process.env.CLIENT_ID; 
+// const guildId = '1188000462000107621'; // Esta linha não é mais necessária para o deploy global.
 const token = process.env.DISCORD_TOKEN;
 
 for (const file of commandFiles) {

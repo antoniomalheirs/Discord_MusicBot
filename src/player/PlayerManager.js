@@ -26,7 +26,6 @@ class PlayerManager {
         }),
         new YouTubePlugin(), // <-- AQUI ENTRA O EXTRACTOR DO YOUTUBE
         new YtDlpPlugin({
-          update: false,
           cookies: path.join(__dirname, "../config/cookies.txt"),
         }),
       ],
@@ -101,11 +100,21 @@ class PlayerManager {
       }
       const embed = new EmbedBuilder()
         .setColor("#00ff00")
-        .setTitle("Musica Adicionada à Fila")
-        .setDescription(
-          `- Musica: **${song.name}**\n- Canal: **${queue.voiceChannel.name}**`
-        )
-        .setTimestamp();
+        .setTitle("Adicionada à Fila")
+          .setDescription(`🎶 **[${song.name}](${song.url})**`)
+          .setTimestamp();
+
+        if (song.duration && song.formattedDuration) {
+          embed.addFields({
+            name: "Duração",
+            value: `**${song.formattedDuration}**`,
+            inline: true,
+          });
+        }
+
+        if (song.thumbnail) {
+          embed.setImage(song.thumbnail);
+        }
 
       const sentMessage = await queue.textChannel.send({ embeds: [embed] });
       setTimeout(() => {

@@ -1,24 +1,27 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
+const { 
+  EmbedBuilder,
+  MessageFlags,
+ } = require('discord.js');
 const { DisTubeError } = require('distube');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('skip')
-    .setDescription('Skip the current song.'),
+    .setDescription('Pula a música atual.'),
 
   async execute(interaction) {
-    await interaction.deferReply(); // Prevents interaction expiration
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }); // Previne expiração e torna erros efêmeros por padrão
 
     const channel = interaction.member.voice.channel;
 
     if (!channel) {
       const embed = new EmbedBuilder()
         .setColor('#FF0000')
-        .setTitle('Error')
-        .setDescription('You need to be in a voice channel to skip the song.');
+        .setTitle('Erro')
+        .setDescription('🚫 Você precisa estar em um canal de voz para pular a música.');
       
-      return interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral, });
     }
 
     try {
@@ -27,23 +30,24 @@ module.exports = {
       if (!queue || !queue.songs.length) {
         const embed = new EmbedBuilder()
           .setColor('#FF0000')
-          .setTitle('No Songs')
-          .setDescription('There is no song currently playing in the queue.');
+          .setTitle('Sem músicas')
+          .setDescription('🚫 Não há nenhuma música tocando na fila no momento.');
         
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral, });
       }
 
       await interaction.client.playerManager.distube.skip(channel);
 
       const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('Song Skipped')
-        .setDescription('⏭ The current song has been skipped.');
+        .setTitle('Música pulada')
+        .setDescription('⏭ A música atual foi pulada com sucesso!');
 
-      await interaction.editReply({ embeds: [embed] });
+      // Sucesso → mensagem pública
+      return interaction.followUp({ embeds: [embed] });
 
     } catch (error) {
-      console.error('Skip Error:', error);
+      console.error('Erro ao pular música:', error);
 
       let embed;
 
@@ -51,27 +55,27 @@ module.exports = {
         if (error.errorCode === 'NO_QUEUE') {
           embed = new EmbedBuilder()
             .setColor('#FF0000')
-            .setTitle('No Queue')
-            .setDescription('There is no queue to skip.');
+            .setTitle('Sem fila')
+            .setDescription('🚫 Não existe nenhuma fila para pular.');
         } else if (error.errorCode === 'NO_UP_NEXT') {
           embed = new EmbedBuilder()
             .setColor('#FF0000')
-            .setTitle('No Up Next')
-            .setDescription('There is no song to skip to next.');
+            .setTitle('Nada na Fila')
+            .setDescription('🚫 Não há nenhuma música para pular em seguida.');
         } else {
           embed = new EmbedBuilder()
             .setColor('#FF0000')
-            .setTitle('Error')
-            .setDescription('An error occurred while trying to skip the song.');
+            .setTitle('Erro')
+            .setDescription('🚫 Ocorreu um erro ao tentar pular a música.');
         }
       } else {
         embed = new EmbedBuilder()
           .setColor('#FF0000')
-          .setTitle('Error')
-          .setDescription('An error occurred while trying to skip the song.');
+          .setTitle('Erro')
+          .setDescription('🚫 Ocorreu um erro ao tentar pular a música.');
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral, });
     }
   },
 };
