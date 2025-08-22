@@ -175,7 +175,8 @@ module.exports = {
                     });
 
                     const filter = (i) => i.customId.startsWith("play_") && i.user.id === interaction.user.id;
-                    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+                    const collector = sentMessage.createMessageComponentCollector({ filter, time: 15000 });
+
 
                     collector.on("collect", async (i) => {
                         try {
@@ -217,29 +218,22 @@ module.exports = {
                     collector.on("end", async (collected) => {
                         if (!collected.size) {
                             try {
-                                const timeoutRow = new ActionRowBuilder().addComponents(
-                                    row1.components.map((button) => ButtonBuilder.from(button).setDisabled(true))
-                                );
-                    
-                                if (sentMessage.editable) {
-                                    await sentMessage.edit({ embeds: [embed], components: [timeoutRow] });
-                                }
-                    
-                                if (interaction.replied || interaction.deferred) { 
-                                    await interaction.followUp({
-                                        embeds: [
-                                            new EmbedBuilder()
-                                                .setColor("#FFFFFF")
-                                                .setDescription("⚠️ Você não selecionou nenhuma música a tempo."),
-                                        ],
-                                        flags: MessageFlags.Ephemeral,
-                                    });
-                                }
+                                // Atualiza a mensagem original da interação
+                                await interaction.editReply({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle("🔎 Resultados da Pesquisa no YouTube")
+                                            .setDescription("⚠️ Você não selecionou nenhuma música a tempo.")
+                                            .setColor("#FFCC00")
+                                    ],
+                                    components: [] // remove todos os botões
+                                });
                             } catch (error) {
                                 console.error("Collector end error:", error);
                             }
                         }
                     });
+
                 }
             } else if (subcommand === "spotify") {
                 const isSpotifyUrl = query.includes("open.spotify.com");
@@ -253,7 +247,7 @@ module.exports = {
                         textChannel: interaction.channel,
                     });
                 } else {
-                    await interaction.deferReply({ flags: MessageFlags.Ephemeral }); // Defer EFÊMERO para a lista
+                    await interaction.deferReply({ flags: MessageFlags.Ephemeral }); // Defer efêmero para a lista
                     const searchResult = await spotifyApi.searchTracks(query, { limit: 5 });
 
                     if (!searchResult.body.tracks || searchResult.body.tracks.items.length === 0) {
@@ -298,10 +292,12 @@ module.exports = {
 
                     collector.on("collect", async (i) => {
                         collector.stop();
-                        const disabledRow = ActionRowBuilder.from(row).setComponents(
+                        const disabledRow = new ActionRowBuilder().addComponents(
                             row.components.map((button) => ButtonBuilder.from(button).setDisabled(true))
                         );
+
                         await i.update({ components: [disabledRow] });
+
                         const index = parseInt(i.customId.split("_")[1]);
                         const selectedTrack = tracks[index];
                         const selectedTrackUrl = selectedTrack.external_urls.spotify;
@@ -319,6 +315,25 @@ module.exports = {
                             member: interaction.member,
                             textChannel: interaction.channel,
                         });
+                    });
+
+                    collector.on("end", async (collected) => {
+                        if (!collected.size) {
+                            try {
+                                // Remove os botões e mostra mensagem de timeout
+                                await interaction.editReply({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle("🔎 Resultados da Pesquisa no Spotify")
+                                            .setDescription("⚠️ Você não selecionou nenhuma música a tempo.")
+                                            .setColor("#FFCC00")
+                                    ],
+                                    components: [] // remove todos os botões
+                                });
+                            } catch (error) {
+                                console.error("Collector end error:", error);
+                            }
+                        }
                     });
                 }
             }

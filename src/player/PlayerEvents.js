@@ -7,7 +7,7 @@ class PlayerEvents {
     console.log(`Tocando agora ${song.name} em ${queue.voiceChannel.name}`);
     if (queue.textChannel) {
       queue.textChannel.send(
-        `🎶 Tocando agora **${song.name}** em **${queue.voiceChannel.name}**`
+        `Adicionado **${song.name}** em **${queue.voiceChannel.name}**`
       );
     }
   }
