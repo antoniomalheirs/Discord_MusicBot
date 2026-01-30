@@ -1,61 +1,48 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-      .setName('shuffle')
-      // DESCRIÇÃO TRADUZIDA
-      .setDescription('Embaralha as músicas na fila.'),
-  
-    async execute(interaction) {
-      const channel = interaction.member.voice.channel;
-  
-      if (!channel) {
+  data: new SlashCommandBuilder()
+    .setName('shuffle')
+    .setDescription('Embaralha a fila de reprodução.'),
+
+  async execute(interaction) {
+    const channel = interaction.member.voice.channel;
+
+    if (!channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('Erro')
+        .setDescription('Você precisa estar em um canal de voz.');
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    }
+
+    try {
+      const player = interaction.client.playerManager.getPlayer(interaction.guild.id);
+
+      if (!player || player.queue.size < 2) {
         const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          // TÍTULO E DESCRIÇÃO TRADUZIDOS
-          .setTitle('Erro')
-          .setDescription('Você precisa estar em um canal de voz para embaralhar a fila.');
-        
-        // Resposta de erro efêmera  
+          .setColor('#FF9900')
+          .setTitle('Fila Pequena')
+          .setDescription('Não há músicas suficientes na fila para embaralhar.');
         return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
-  
-      try {
-        const queue = interaction.client.playerManager.distube.getQueue(channel);
 
-        // Verificação adicional: não há fila ou não há músicas suficientes para embaralhar
-        if (!queue || queue.songs.length < 2) {
-            const embed = new EmbedBuilder()
-                .setColor('#FF9900')
-                // TÍTULO E DESCRIÇÃO TRADUZIDOS
-                .setTitle('Fila Insuficiente')
-                .setDescription('Não há músicas suficientes na fila para embaralhar.');
+      player.queue.shuffle();
 
-            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-        }
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('Fila Embaralhada')
+        .setDescription('🔀 A fila foi embaralhada com sucesso!');
 
-        await interaction.client.playerManager.distube.shuffle(channel);
-  
-        const embed = new EmbedBuilder()
-          .setColor('#00FF00')
-          // TÍTULO E DESCRIÇÃO TRADUZIDOS
-          .setTitle('Fila Embaralhada')
-          .setDescription('🔀 A fila foi embaralhada com sucesso.');
-        
-        // Resposta de confirmação PÚBLICA
-        await interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed] });
 
-      } catch (error) {
-        console.error('Shuffle Error:', error);
-  
-        const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          // TÍTULO E DESCRIÇÃO TRADUZIDOS
-          .setTitle('Erro')
-          .setDescription('Ocorreu um erro ao tentar embaralhar a fila.');
-        
-        // Resposta de erro efêmera
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-      }
-    },
-  };
+    } catch (error) {
+      console.error('Shuffle Error:', error);
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('Erro')
+        .setDescription('Ocorreu um erro ao embaralhar a fila.');
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    }
+  },
+};

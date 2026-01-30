@@ -1,0 +1,9 @@
+node_modules
+.git
+.env
+.npm
+fix_termux.sh
+*.log
+docker-compose.yml
+Dockerfile
+yt-dlp.conf

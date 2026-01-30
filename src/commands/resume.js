@@ -3,75 +3,54 @@ const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js'
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('resume')
-    // DESCRIÇÃO TRADUZIDA
-    .setDescription('Continua a música pausada.'),
+    .setDescription('Retoma a reprodução da música pausada.'),
 
   async execute(interaction) {
     const channel = interaction.member.voice.channel;
 
     if (!channel) {
-      const noChannelEmbed = new EmbedBuilder()
-        .setColor('#ff0000')
-        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
         .setTitle('Erro')
-        .setDescription('❌ Você precisa estar em um canal de voz para continuar a música.')
-        .setTimestamp();
-
-      // Resposta de erro efêmera
-      return interaction.reply({ embeds: [noChannelEmbed], flags: MessageFlags.Ephemeral });
+        .setDescription('Você precisa estar em um canal de voz.');
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 
     try {
-      const queue = interaction.client.playerManager.distube.getQueue(channel);
+      const player = interaction.client.playerManager.getPlayer(interaction.guild.id);
 
-      if (!queue) {
-        const noQueueEmbed = new EmbedBuilder()
-          .setColor('#ff9900')
-          // TÍTULO E DESCRIÇÃO TRADUZIDOS
-          .setTitle('Erro')
-          .setDescription('❌ Não há nenhuma música tocando para continuar.')
-          .setTimestamp();
-        
-        // Resposta de erro efêmera
-        return interaction.reply({ embeds: [noQueueEmbed], flags: MessageFlags.Ephemeral });
+      if (!player) {
+        const embed = new EmbedBuilder()
+          .setColor('#FF9900')
+          .setTitle('Sem Música')
+          .setDescription('Não há nenhuma música pausada no momento.');
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
-      if (!queue.paused) {
-        const alreadyPlayingEmbed = new EmbedBuilder()
-          .setColor('#ff9900')
-          // TÍTULO E DESCRIÇÃO TRADUZIDOS
-          .setTitle('Música Já Tocando')
-          .setDescription('▶️ A música já está tocando.')
-          .setTimestamp();
-        
-        // Resposta de aviso efêmera
-        return interaction.reply({ embeds: [alreadyPlayingEmbed], flags: MessageFlags.Ephemeral });
+      if (!player.paused) {
+        const embed = new EmbedBuilder()
+          .setColor('#FF9900')
+          .setTitle('Não Pausado')
+          .setDescription('A música não está pausada.');
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
-      await interaction.client.playerManager.distube.resume(channel);
+      player.pause(false);
 
-      const resumedEmbed = new EmbedBuilder()
-        .setColor('#00ff00')
-        // TÍTULO E DESCRIÇÃO TRADUZIDOS
-        .setTitle('Música Retomada')
-        .setDescription('▶️ A música foi retomada.')
-        .setTimestamp();
-      
-      // Resposta de confirmação PÚBLICA (sem a flag Ephemeral)
-      await interaction.reply({ embeds: [resumedEmbed] });
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('Reprodução Retomada')
+        .setDescription('▶️ A música foi retomada com sucesso!');
+
+      await interaction.reply({ embeds: [embed] });
 
     } catch (error) {
       console.error('Resume Error:', error);
-
-      const errorEmbed = new EmbedBuilder()
-        .setColor('#ff0000')
-        // TÍTULO E DESCRIÇÃO TRADUZIDOS
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
         .setTitle('Erro')
-        .setDescription('❌ Ocorreu um erro ao tentar continuar a música.')
-        .setTimestamp();
-      
-      // Resposta de erro efêmera
-      await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        .setDescription('Ocorreu um erro ao retomar a música.');
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
   },
 };

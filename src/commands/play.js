@@ -113,13 +113,23 @@ module.exports = {
         try {
             if (subcommand === "playlist") {
                 await interaction.deferReply(); // Defer público para links diretos
-                await interaction.editReply({
-                    content: `📃 Playlist adicionada: ${query}`,
-                });
-                await interaction.client.playerManager.distube.play(channel, query, {
-                    member: interaction.member,
-                    textChannel: interaction.channel,
-                });
+                if (query.includes("open.spotify.com")) {
+                    await interaction.editReply({
+                        content: `⏳ Iniciando playlist do Spotify...`,
+                    });
+                    await interaction.client.playerManager.playSpotifyPlaylist(channel, query, {
+                        member: interaction.member,
+                        textChannel: interaction.channel,
+                    });
+                } else {
+                    await interaction.editReply({
+                        content: `📃 Playlist adicionada: ${query}`,
+                    });
+                    await interaction.client.playerManager.playSong(channel, query, {
+                        member: interaction.member,
+                        textChannel: interaction.channel,
+                    });
+                }
             } else if (subcommand === "youtube") {
                 const isYoutubeUrl = query.includes("youtube.com");
 
@@ -128,7 +138,7 @@ module.exports = {
                     await interaction.editReply({
                         content: `🎶 Música adicionada por URL: ${query}`,
                     });
-                    await interaction.client.playerManager.distube.play(channel, query, {
+                    await interaction.client.playerManager.playSong(channel, query, {
                         member: interaction.member,
                         textChannel: interaction.channel,
                     });
@@ -196,7 +206,7 @@ module.exports = {
                                             .setDescription(`▶️ Reproduzindo agora: **${selectedVideo.title}**`),
                                     ],
                                 });
-                                await interaction.client.playerManager.distube.play(channel, selectedVideo.url, {
+                                await interaction.client.playerManager.playSong(channel, selectedVideo.url, {
                                     member: interaction.member,
                                     textChannel: interaction.channel,
                                 });
@@ -238,14 +248,56 @@ module.exports = {
             } else if (subcommand === "spotify") {
                 const isSpotifyUrl = query.includes("open.spotify.com");
                 if (isSpotifyUrl) {
-                    await interaction.deferReply(); // Defer público para links diretos
-                    await interaction.editReply({
-                        content: `🎶 Música adicionada por URL: ${query}`,
-                    });
-                    await interaction.client.playerManager.distube.play(channel, query, {
-                        member: interaction.member,
-                        textChannel: interaction.channel,
-                    });
+                    await interaction.deferReply();
+
+                    // Extrair ID da música do Spotify
+                    const trackIdMatch = query.match(/track\/([a-zA-Z0-9]+)/);
+                    if (!trackIdMatch) {
+                        return interaction.editReply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor("#ff0000")
+                                    .setDescription("🚫 URL do Spotify inválida."),
+                            ],
+                        });
+                    }
+
+                    try {
+                        // Buscar info da música no Spotify
+                        const trackInfo = await spotifyApi.getTrack(trackIdMatch[1]);
+                        const track = trackInfo.body;
+                        const artists = track.artists.map(a => a.name).join(", ");
+                        const searchQuery = `${track.name} ${artists}`;
+
+                        await interaction.editReply({
+                            content: `🎶 Buscando no YouTube: **${track.name}** por **${artists}**`,
+                        });
+
+                        // Usar yt-search para achar o link do YouTube garantido
+                        const ytResult = await ytSearch(searchQuery);
+
+                        if (!ytResult || !ytResult.videos.length) {
+                            return interaction.editReply({
+                                content: `🚫 Não foi possível encontrar **${track.name}** no YouTube.`
+                            });
+                        }
+
+                        const videoUrl = ytResult.videos[0].url;
+
+                        await interaction.client.playerManager.playSong(channel, videoUrl, {
+                            member: interaction.member,
+                            textChannel: interaction.channel,
+                        });
+                    } catch (err) {
+                        console.error("Spotify fetch error:", err);
+                        return interaction.editReply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor("#ff0000")
+                                    .setDescription("🚫 Erro ao buscar informações da música."),
+                            ],
+                        });
+                    }
                 } else {
                     await interaction.deferReply({ flags: MessageFlags.Ephemeral }); // Defer efêmero para a lista
                     const searchResult = await spotifyApi.searchTracks(query, { limit: 5 });
@@ -285,36 +337,59 @@ module.exports = {
                         );
                     });
 
-                    await interaction.editReply({ embeds: [embed], components: [row] });
+                    const sentMessage = await interaction.editReply({ embeds: [embed], components: [row] });
 
                     const filter = (i) => i.customId.startsWith("spotify_") && i.user.id === interaction.user.id;
-                    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+                    const collector = sentMessage.createMessageComponentCollector({ filter, time: 15000 });
 
                     collector.on("collect", async (i) => {
-                        collector.stop();
-                        const disabledRow = new ActionRowBuilder().addComponents(
-                            row.components.map((button) => ButtonBuilder.from(button).setDisabled(true))
-                        );
+                        try {
+                            collector.stop();
+                            const disabledRow = new ActionRowBuilder().addComponents(
+                                row.components.map((button) => ButtonBuilder.from(button).setDisabled(true))
+                            );
 
-                        await i.update({ components: [disabledRow] });
+                            await i.update({ components: [disabledRow] });
 
-                        const index = parseInt(i.customId.split("_")[1]);
-                        const selectedTrack = tracks[index];
-                        const selectedTrackUrl = selectedTrack.external_urls.spotify;
-                        const artists = selectedTrack.artists.map((artist) => artist.name).join(", ");
+                            const index = parseInt(i.customId.split("_")[1]);
+                            const selectedTrack = tracks[index];
+                            if (!selectedTrack) {
+                                return interaction.followUp({
+                                    content: "Erro ao selecionar música.",
+                                    flags: MessageFlags.Ephemeral
+                                });
+                            }
 
-                        await interaction.followUp({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setColor("#1DB954")
-                                    .setDescription(`▶️ Reproduzindo agora: **${selectedTrack.name}** por **${artists}**`),
-                            ],
-                        });
+                            const artists = selectedTrack.artists.map((artist) => artist.name).join(", ");
+                            const searchQuery = `${selectedTrack.name} ${artists}`;
 
-                        await interaction.client.playerManager.distube.play(channel, selectedTrackUrl, {
-                            member: interaction.member,
-                            textChannel: interaction.channel,
-                        });
+                            await interaction.followUp({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor("#1DB954")
+                                        .setDescription(`▶️ Reproduzindo agora: **${selectedTrack.name}** por **${artists}**`),
+                                ],
+                            });
+
+                            // Usar yt-search para achar o link do YouTube garantido
+                            const ytResult = await ytSearch(searchQuery);
+
+                            if (!ytResult || !ytResult.videos.length) {
+                                return interaction.followUp({
+                                    content: `🚫 Não foi possível encontrar **${selectedTrack.name}** no YouTube.`,
+                                    flags: MessageFlags.Ephemeral
+                                });
+                            }
+
+                            const videoUrl = ytResult.videos[0].url;
+
+                            await interaction.client.playerManager.playSong(channel, videoUrl, {
+                                member: interaction.member,
+                                textChannel: interaction.channel,
+                            });
+                        } catch (err) {
+                            console.error("Spotify Play Error:", err);
+                        }
                     });
 
                     collector.on("end", async (collected) => {

@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
-const { distubeOptions } = require('./config/config.js');
 const fs = require('fs');
 const path = require('path');
 const PlayerManager = require('./player/PlayerManager.js');
@@ -13,8 +12,9 @@ const intents = [
 
 const client = new Client({ intents });
 client.commands = new Collection();
-client.playerManager = new PlayerManager(client, distubeOptions);
-client.playerManager.distube.setMaxListeners(20);
+
+// Inicializa PlayerManager com Lavalink (sem DisTube)
+client.playerManager = new PlayerManager(client);
 
 // Corrected path for commands
 const commandsPath = path.join(__dirname, './commands');
